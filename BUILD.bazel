@@ -1,0 +1,4 @@
+package(default_visibility = ["//visibility:public"])
+
+# Expose shared workspace-level files.
+exports_files(["deps.bzl"])

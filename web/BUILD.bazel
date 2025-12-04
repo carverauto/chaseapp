@@ -1,0 +1,52 @@
+load("@build_bazel_rules_nodejs//:index.bzl", "js_library", "npm_package_bin")
+
+package(default_visibility = ["//visibility:public"])
+
+# Source bundle for the Nuxt app.
+js_library(
+    name = "web_src",
+    srcs = glob(
+        [
+            "**/*.js",
+            "**/*.ts",
+            "**/*.vue",
+            "nuxt.config.js",
+            "package.json",
+            "tsconfig.json",
+        ],
+        exclude = [
+            "node_modules/**",
+            ".nuxt/**",
+            ".output/**",
+            "dist/**",
+        ],
+    ),
+)
+
+# Development server entrypoint.
+npm_package_bin(
+    name = "dev",
+    package = "nuxi-edge",
+    package_bin = "nuxi",
+    args = ["dev"],
+    data = [
+        ":web_src",
+        "@npm//:node_modules",
+    ],
+    chdir = "web",
+    output_dir = True,
+)
+
+# Production build entrypoint.
+npm_package_bin(
+    name = "build",
+    package = "nuxi-edge",
+    package_bin = "nuxi",
+    args = ["build"],
+    data = [
+        ":web_src",
+        "@npm//:node_modules",
+    ],
+    chdir = "web",
+    output_dir = True,
+)

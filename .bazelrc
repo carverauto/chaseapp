@@ -1,0 +1,16 @@
+# Common Bazel configuration for ChaseApp. See AGENTS.md for strategy details.
+
+common --experimental_convenience_symlinks=ignore
+common --enable_platform_specific_config
+common --announce_rc
+
+build --color=yes
+build --curses=yes
+build --show_result=10
+build --verbose_failures
+build --keep_going
+
+test --test_output=errors
+
+# Allow local overrides without affecting source control.
+try-import %workspace%/.bazelrc.local

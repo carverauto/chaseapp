@@ -78,6 +78,7 @@
     "@nuxtjs/google-fonts": "^2.0.0",
     "@nuxtjs/google-gtag": "^1.0.4",
     "@nuxtjs/pwa": "^3.3.5",
+    "@nuxt/kit": "npm:@nuxt/kit-edge@3.0.0-rc.9-27703329.537338f",
     "@types/mapbox-gl": "^2.3.3",
     "@typescript-eslint/parser": "^5.15.0",
     "@vitejs/plugin-vue": "^1.9.3",

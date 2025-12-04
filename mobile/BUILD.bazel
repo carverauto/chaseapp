@@ -1,0 +1,19 @@
+package(default_visibility = ["//visibility:public"])
+
+# Placeholder Flutter sources; wire to flutter rules once toolchain is in place.
+filegroup(
+    name = "mobile_src",
+    srcs = glob(
+        [
+            "**/*.dart",
+            "pubspec.yaml",
+            "analysis_options.yaml",
+        ],
+        exclude = [
+            "build/**",
+            ".dart_tool/**",
+            "ios/Pods/**",
+            "android/.gradle/**",
+        ],
+    ),
+)

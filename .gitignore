@@ -30,3 +30,10 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Bazel
+.bazelroot/
+
+AGENTS.md
+CLAUDE.md
+GEMINI.md

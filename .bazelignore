@@ -1,0 +1,13 @@
+# Generated or vendor directories Bazel should skip.
+node_modules
+**/node_modules
+.git
+.idea
+.vscode
+.output
+web/.nuxt
+web/.output
+mobile/build
+mobile/.dart_tool
+mobile/ios/Pods
+mobile/android/.gradle
