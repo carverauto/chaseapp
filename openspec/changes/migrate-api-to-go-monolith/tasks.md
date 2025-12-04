@@ -45,15 +45,15 @@
 - [x] 4.5 Implement `DELETE /api/v1/chases/{id}` - Delete chase
 - [x] 4.6 Implement `GET /api/v1/chases/bundle` - Offline data bundle
 - [x] 4.7 Implement chase lifecycle logic (Live status, EndedAt timestamp)
-- [ ] 4.8 Publish chase events to NATS on create/update/delete
+- [x] 4.8 Publish chase events to NATS on create/update/delete
 
 ## 5. Aircraft Endpoints (from API, bof, bofTS, updateRTDB)
 
 - [x] 5.1 Implement `GET /api/v1/aircraft` - List aircraft
-- [ ] 5.2 Implement `POST /api/v1/aircraft/cluster` - DBSCAN clustering
-- [ ] 5.3 Port DBSCAN algorithm to `pkg/dbscan/`
-- [ ] 5.4 Implement BoF (Birds of a Feather) clustering logic
-- [ ] 5.5 Implement aircraft data sync worker
+- [x] 5.2 Implement `POST /api/v1/aircraft/cluster` - DBSCAN clustering
+- [x] 5.3 Port DBSCAN algorithm to `pkg/dbscan/`
+- [x] 5.4 Implement BoF (Birds of a Feather) clustering logic
+- [x] 5.5 Implement aircraft data sync worker
 
 ## 6. External Data Endpoints (from rocketAPI, weatherAPI)
 

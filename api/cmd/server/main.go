@@ -61,7 +61,11 @@ func main() {
 	}
 
 	// Create and start server
-	srv := server.New(cfg, logger, db.Pool)
+	srv, err := server.New(cfg, logger, db.Pool)
+	if err != nil {
+		logger.Error("failed to initialize server", slog.Any("error", err))
+		os.Exit(1)
+	}
 
 	// Handle graceful shutdown
 	shutdownCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

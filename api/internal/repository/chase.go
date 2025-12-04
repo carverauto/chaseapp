@@ -249,12 +249,12 @@ func (r *ChaseRepository) List(ctx context.Context, opts model.ChaseListOptions)
 	}, nil
 }
 
-// Update updates a chase.
-func (r *ChaseRepository) Update(ctx context.Context, id uuid.UUID, input model.UpdateChaseInput) (*model.Chase, error) {
+// Update updates a chase and returns whether it was previously live.
+func (r *ChaseRepository) Update(ctx context.Context, id uuid.UUID, input model.UpdateChaseInput) (*model.Chase, bool, error) {
 	// Get current chase first
 	chase, err := r.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// Track if Live status changed from true to false
@@ -314,13 +314,13 @@ func (r *ChaseRepository) Update(ctx context.Context, id uuid.UUID, input model.
 	).Scan(&chase.UpdatedAt)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNotFound
+		return nil, wasLive, ErrNotFound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to update chase: %w", err)
+		return nil, wasLive, fmt.Errorf("failed to update chase: %w", err)
 	}
 
-	return chase, nil
+	return chase, wasLive, nil
 }
 
 // Delete soft-deletes a chase.

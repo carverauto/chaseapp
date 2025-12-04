@@ -14,7 +14,9 @@ import (
 	"chaseapp.tv/api/internal/config"
 	"chaseapp.tv/api/internal/handler"
 	"chaseapp.tv/api/internal/middleware"
+	"chaseapp.tv/api/internal/realtime"
 	"chaseapp.tv/api/internal/repository"
+	"chaseapp.tv/api/internal/worker"
 )
 
 // Server represents the HTTP server.
@@ -29,26 +31,41 @@ type Server struct {
 	chaseHandler    *handler.ChaseHandler
 	aircraftHandler *handler.AircraftHandler
 	pushHandler     *handler.PushHandler
+
+	// Realtime
+	publisher *realtime.Publisher
+
+	// Workers
+	aircraftWorker *worker.AircraftSyncWorker
 }
 
 // New creates a new Server instance.
-func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) *Server {
+func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, error) {
 	// Initialize repositories
 	chaseRepo := repository.NewChaseRepository(pool)
 	userRepo := repository.NewUserRepository(pool)
 	aircraftRepo := repository.NewAircraftRepository(pool)
 	pushTokenRepo := repository.NewPushTokenRepository(pool)
 
+	publisher, err := realtime.NewPublisher(cfg.NATS, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
+	}
+
 	s := &Server{
-		cfg:    cfg,
-		logger: logger,
-		router: mux.NewRouter(),
-		pool:   pool,
+		cfg:       cfg,
+		logger:    logger,
+		router:    mux.NewRouter(),
+		pool:      pool,
+		publisher: publisher,
 
 		// Initialize handlers with their dependencies
-		chaseHandler:    handler.NewChaseHandler(chaseRepo, logger),
+		chaseHandler:    handler.NewChaseHandler(chaseRepo, publisher, logger),
 		aircraftHandler: handler.NewAircraftHandler(aircraftRepo, logger),
 		pushHandler:     handler.NewPushHandler(pushTokenRepo, userRepo, logger),
+
+		// Workers
+		aircraftWorker: worker.NewAircraftSyncWorker(aircraftRepo, logger),
 	}
 
 	s.setupMiddleware()
@@ -61,7 +78,7 @@ func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) *Server {
 		WriteTimeout: cfg.Server.WriteTimeout,
 	}
 
-	return s
+	return s, nil
 }
 
 // setupMiddleware configures global middleware.
@@ -126,6 +143,10 @@ func (s *Server) readinessCheck(w http.ResponseWriter, r *http.Request) {
 		handler.Error(w, http.StatusServiceUnavailable, "database not ready")
 		return
 	}
+	if s.publisher == nil || !s.publisher.IsConnected() {
+		handler.Error(w, http.StatusServiceUnavailable, "nats not ready")
+		return
+	}
 	handler.JSON(w, http.StatusOK, map[string]string{"status": "ready"})
 }
 
@@ -134,13 +155,28 @@ func (s *Server) Start() error {
 	s.logger.Info("starting server",
 		slog.String("addr", s.http.Addr),
 	)
+
+	if s.aircraftWorker != nil {
+		s.logger.Info("starting aircraft sync worker")
+		s.aircraftWorker.Start()
+	}
+
 	return s.http.ListenAndServe()
 }
 
 // Shutdown gracefully stops the server.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info("shutting down server")
-	return s.http.Shutdown(ctx)
+	if err := s.http.Shutdown(ctx); err != nil {
+		return err
+	}
+	if s.publisher != nil {
+		s.publisher.Close()
+	}
+	if s.aircraftWorker != nil {
+		s.aircraftWorker.Stop(ctx)
+	}
+	return nil
 }
 
 // Router returns the underlying mux router for testing.

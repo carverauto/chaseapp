@@ -6,26 +6,30 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 
 	"chaseapp.tv/api/internal/middleware"
 	"chaseapp.tv/api/internal/model"
+	"chaseapp.tv/api/internal/realtime"
 	"chaseapp.tv/api/internal/repository"
 )
 
 // ChaseHandler handles chase-related HTTP requests.
 type ChaseHandler struct {
-	repo   *repository.ChaseRepository
-	logger *slog.Logger
+	repo      *repository.ChaseRepository
+	publisher *realtime.Publisher
+	logger    *slog.Logger
 }
 
 // NewChaseHandler creates a new ChaseHandler.
-func NewChaseHandler(repo *repository.ChaseRepository, logger *slog.Logger) *ChaseHandler {
+func NewChaseHandler(repo *repository.ChaseRepository, publisher *realtime.Publisher, logger *slog.Logger) *ChaseHandler {
 	return &ChaseHandler{
-		repo:   repo,
-		logger: logger,
+		repo:      repo,
+		publisher: publisher,
+		logger:    logger,
 	}
 }
 
@@ -123,7 +127,10 @@ func (h *ChaseHandler) Create(w http.ResponseWriter, r *http.Request) {
 		slog.String("title", chase.Title),
 	)
 
-	// TODO: Publish chase.created event to NATS
+	h.publishChaseEvent(realtime.SubjectChaseCreated, chase)
+	if chase.Live {
+		h.publishChaseEvent(realtime.SubjectChaseLive, chase)
+	}
 
 	JSON(w, http.StatusCreated, chase)
 }
@@ -187,7 +194,7 @@ func (h *ChaseHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chase, err := h.repo.Update(ctx, id, input)
+	chase, wasLive, err := h.repo.Update(ctx, id, input)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			Error(w, http.StatusNotFound, "Chase not found")
@@ -206,8 +213,15 @@ func (h *ChaseHandler) Update(w http.ResponseWriter, r *http.Request) {
 		slog.Bool("live", chase.Live),
 	)
 
-	// TODO: Publish chase.updated event to NATS
-	// If chase ended (live was true, now false), also publish chase.ended
+	h.publishChaseEvent(realtime.SubjectChaseUpdated, chase)
+
+	if !wasLive && chase.Live {
+		h.publishChaseEvent(realtime.SubjectChaseLive, chase)
+	}
+
+	if wasLive && !chase.Live {
+		h.publishChaseEvent(realtime.SubjectChaseEnded, chase)
+	}
 
 	JSON(w, http.StatusOK, chase)
 }
@@ -221,6 +235,20 @@ func (h *ChaseHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(vars["id"])
 	if err != nil {
 		Error(w, http.StatusBadRequest, "Invalid chase ID")
+		return
+	}
+
+	chase, err := h.repo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			Error(w, http.StatusNotFound, "Chase not found")
+			return
+		}
+		h.logger.Error("failed to load chase before delete",
+			slog.Any("error", err),
+			slog.String("id", id.String()),
+		)
+		Error(w, http.StatusInternalServerError, "Failed to delete chase")
 		return
 	}
 
@@ -239,7 +267,7 @@ func (h *ChaseHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	h.logger.Info("chase deleted", slog.String("id", id.String()))
 
-	// TODO: Publish chase.deleted event to NATS
+	h.publishChaseEvent(realtime.SubjectChaseDeleted, chase)
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -303,4 +331,19 @@ func (h *ChaseHandler) IncrementShare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *ChaseHandler) publishChaseEvent(subject string, chase *model.Chase) {
+	if h.publisher == nil || chase == nil {
+		return
+	}
+
+	if err := h.publisher.PublishChase(subject, chase); err != nil {
+		h.logger.Error("failed to publish chase event",
+			slog.Any("error", err),
+			slog.String("subject", subject),
+			slog.String("chase_id", chase.ID.String()),
+			slog.Time("occurred_at", time.Now().UTC()),
+		)
+	}
 }
