@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chaseapp-deployer
+  labels:
+    app.kubernetes.io/name: chaseapp
+    app.kubernetes.io/component: deployer
+subjects:
+  - kind: ServiceAccount
+    name: chaseapp-deployer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: chaseapp-deployer

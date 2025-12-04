@@ -8,6 +8,9 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - rbac/serviceaccount.yaml
+  - rbac/role.yaml
+  - rbac/rolebinding.yaml
 
 images:
   - name: ghcr.io/carverauto/chaseapp-web
