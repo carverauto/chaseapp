@@ -15,6 +15,7 @@ type Config struct {
 	NATS     NATSConfig
 	Search   SearchConfig
 	Push     PushConfig
+	Chat     ChatConfig
 	External ExternalConfig
 }
 
@@ -29,16 +30,16 @@ type ServerConfig struct {
 
 // DatabaseConfig holds PostgreSQL configuration.
 type DatabaseConfig struct {
-	Host         string
-	Port         int
-	User         string
-	Password     string
-	Database     string
-	SSLMode      string
-	MaxConns     int
-	MinConns     int
-	MaxConnLife  time.Duration
-	MaxConnIdle  time.Duration
+	Host        string
+	Port        int
+	User        string
+	Password    string
+	Database    string
+	SSLMode     string
+	MaxConns    int
+	MinConns    int
+	MaxConnLife time.Duration
+	MaxConnIdle time.Duration
 }
 
 // ConnectionString returns the PostgreSQL connection string.
@@ -73,21 +74,34 @@ func (s SearchConfig) URL() string {
 
 // PushConfig holds push notification configuration.
 type PushConfig struct {
-	NtfyURL       string
-	APNsKeyID     string
-	APNsTeamID    string
-	APNsKeyPath   string
-	APNsBundleID  string
-	FCMProjectID  string
-	FCMKeyPath    string
+	NtfyURL      string
+	NtfyToken    string
+	APNsKeyID    string
+	APNsTeamID   string
+	APNsKeyPath  string
+	APNsBundleID string
+	FCMProjectID string
+	FCMKeyPath   string
+	SafariPushID string
+	SafariWebURL string
+}
+
+// ChatConfig holds chat token signing configuration.
+type ChatConfig struct {
+	SigningKey string
+	Issuer     string
+	Audience   string
+	TokenTTL   time.Duration
 }
 
 // ExternalConfig holds external API configuration.
 type ExternalConfig struct {
-	USGSBaseURL    string
-	AISHubAPIKey   string
-	NOAABaseURL    string
-	DiscordWebhook string
+	USGSBaseURL          string
+	AISHubBaseURL        string
+	AISHubAPIKey         string
+	NOAABaseURL          string
+	LaunchLibraryBaseURL string
+	DiscordWebhook       string
 }
 
 // Load reads configuration from environment variables.
@@ -127,18 +141,29 @@ func Load() (*Config, error) {
 		},
 		Push: PushConfig{
 			NtfyURL:      getEnv("NTFY_URL", ""),
+			NtfyToken:    getEnv("NTFY_TOKEN", ""),
 			APNsKeyID:    getEnv("APNS_KEY_ID", ""),
 			APNsTeamID:   getEnv("APNS_TEAM_ID", ""),
 			APNsKeyPath:  getEnv("APNS_KEY_PATH", ""),
 			APNsBundleID: getEnv("APNS_BUNDLE_ID", ""),
 			FCMProjectID: getEnv("FCM_PROJECT_ID", ""),
 			FCMKeyPath:   getEnv("FCM_KEY_PATH", ""),
+			SafariPushID: getEnv("SAFARI_PUSH_ID", ""),
+			SafariWebURL: getEnv("SAFARI_WEB_SERVICE_URL", ""),
+		},
+		Chat: ChatConfig{
+			SigningKey: getEnv("CHAT_SIGNING_KEY", ""),
+			Issuer:     getEnv("CHAT_TOKEN_ISSUER", "chaseapp"),
+			Audience:   getEnv("CHAT_TOKEN_AUDIENCE", "chat"),
+			TokenTTL:   getEnvDuration("CHAT_TOKEN_TTL", 15*time.Minute),
 		},
 		External: ExternalConfig{
-			USGSBaseURL:    getEnv("USGS_BASE_URL", "https://earthquake.usgs.gov"),
-			AISHubAPIKey:   getEnv("AISHUB_API_KEY", ""),
-			NOAABaseURL:    getEnv("NOAA_BASE_URL", "https://api.weather.gov"),
-			DiscordWebhook: getEnv("DISCORD_WEBHOOK_URL", ""),
+			USGSBaseURL:          getEnv("USGS_BASE_URL", "https://earthquake.usgs.gov"),
+			AISHubBaseURL:        getEnv("AISHUB_BASE_URL", "https://data.aishub.net/ws.php"),
+			AISHubAPIKey:         getEnv("AISHUB_API_KEY", ""),
+			NOAABaseURL:          getEnv("NOAA_BASE_URL", "https://api.weather.gov"),
+			LaunchLibraryBaseURL: getEnv("LAUNCH_LIBRARY_BASE_URL", "https://ll.thespacedevs.com/2.2.0"),
+			DiscordWebhook:       getEnv("DISCORD_WEBHOOK_URL", ""),
 		},
 	}
 

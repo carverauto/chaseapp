@@ -8,8 +8,10 @@ import (
 
 	"github.com/google/uuid"
 
+	"chaseapp.tv/api/internal/config"
 	"chaseapp.tv/api/internal/middleware"
 	"chaseapp.tv/api/internal/model"
+	"chaseapp.tv/api/internal/push"
 	"chaseapp.tv/api/internal/repository"
 )
 
@@ -17,14 +19,16 @@ import (
 type PushHandler struct {
 	tokenRepo *repository.PushTokenRepository
 	userRepo  *repository.UserRepository
+	cfg       config.PushConfig
 	logger    *slog.Logger
 }
 
 // NewPushHandler creates a new PushHandler.
-func NewPushHandler(tokenRepo *repository.PushTokenRepository, userRepo *repository.UserRepository, logger *slog.Logger) *PushHandler {
+func NewPushHandler(tokenRepo *repository.PushTokenRepository, userRepo *repository.UserRepository, cfg config.PushConfig, logger *slog.Logger) *PushHandler {
 	return &PushHandler{
 		tokenRepo: tokenRepo,
 		userRepo:  userRepo,
+		cfg:       cfg,
 		logger:    logger,
 	}
 }
@@ -170,10 +174,16 @@ func (h *PushHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
 
 // GetSafariPushPackage generates a Safari push notification package.
 // GET /api/v1/push/safari-package
-// This is kept as a standalone function for now as it requires special handling.
-func GetSafariPushPackage(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement Safari push package generation
-	// This requires P12 certificate signing and ZIP file creation
-	// Will be implemented in Phase 10
-	Error(w, http.StatusNotImplemented, "Safari push package not yet implemented")
+func (h *PushHandler) GetSafariPushPackage(w http.ResponseWriter, r *http.Request) {
+	zipBytes, err := push.BuildSafariPackage(h.cfg)
+	if err != nil {
+		h.logger.Error("failed to build safari package", slog.Any("error", err))
+		Error(w, http.StatusInternalServerError, "Failed to build Safari push package")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"safari-push-package.zip\"")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(zipBytes)
 }

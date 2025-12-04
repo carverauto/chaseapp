@@ -12,11 +12,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"chaseapp.tv/api/internal/config"
+	"chaseapp.tv/api/internal/external"
 	"chaseapp.tv/api/internal/handler"
 	"chaseapp.tv/api/internal/middleware"
 	"chaseapp.tv/api/internal/realtime"
 	"chaseapp.tv/api/internal/repository"
 	"chaseapp.tv/api/internal/worker"
+	"chaseapp.tv/api/pkg/scraper"
 )
 
 // Server represents the HTTP server.
@@ -31,6 +33,10 @@ type Server struct {
 	chaseHandler    *handler.ChaseHandler
 	aircraftHandler *handler.AircraftHandler
 	pushHandler     *handler.PushHandler
+	externalHandler *handler.ExternalHandler
+	streamHandler   *handler.StreamHandler
+	geoHandler      *handler.GeoHandler
+	authHandler     *handler.AuthHandler
 
 	// Realtime
 	publisher *realtime.Publisher
@@ -52,6 +58,13 @@ func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, 
 		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
 	}
 
+	externalClient := external.NewClient(cfg.External, logger)
+	streamExtractor := scraper.NewExtractor()
+	chatSigner, err := auth.NewChatTokenSigner(cfg.Chat)
+	if err != nil {
+		return nil, fmt.Errorf("chat token signer init: %w", err)
+	}
+
 	s := &Server{
 		cfg:       cfg,
 		logger:    logger,
@@ -62,7 +75,11 @@ func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, 
 		// Initialize handlers with their dependencies
 		chaseHandler:    handler.NewChaseHandler(chaseRepo, publisher, logger),
 		aircraftHandler: handler.NewAircraftHandler(aircraftRepo, logger),
-		pushHandler:     handler.NewPushHandler(pushTokenRepo, userRepo, logger),
+		pushHandler:     handler.NewPushHandler(pushTokenRepo, userRepo, cfg.Push, logger),
+		externalHandler: handler.NewExternalHandler(externalClient, logger),
+		streamHandler:   handler.NewStreamHandler(chaseRepo, streamExtractor, publisher, logger),
+		geoHandler:      handler.NewGeoHandler(logger),
+		authHandler:     handler.NewAuthHandler(chatSigner, logger),
 
 		// Workers
 		aircraftWorker: worker.NewAircraftSyncWorker(aircraftRepo, logger),
@@ -113,25 +130,25 @@ func (s *Server) setupRoutes() {
 	api.HandleFunc("/aircraft", s.aircraftHandler.List).Methods(http.MethodGet)
 	api.HandleFunc("/aircraft/cluster", s.aircraftHandler.Cluster).Methods(http.MethodPost)
 
-	// External data (stub handlers for now)
-	api.HandleFunc("/quakes", handler.GetQuakes).Methods(http.MethodGet)
-	api.HandleFunc("/boats", handler.GetBoats).Methods(http.MethodGet)
-	api.HandleFunc("/launches", handler.GetLaunches).Methods(http.MethodGet)
-	api.HandleFunc("/weather/alerts", handler.GetWeatherAlerts).Methods(http.MethodGet)
+	// External data
+	api.HandleFunc("/quakes", s.externalHandler.GetQuakes).Methods(http.MethodGet)
+	api.HandleFunc("/boats", s.externalHandler.GetBoats).Methods(http.MethodGet)
+	api.HandleFunc("/launches", s.externalHandler.GetLaunches).Methods(http.MethodGet)
+	api.HandleFunc("/weather/alerts", s.externalHandler.GetWeatherAlerts).Methods(http.MethodGet)
 
 	// Streams
-	api.HandleFunc("/streams/extract", handler.ExtractStreamURLs).Methods(http.MethodPost)
+	api.HandleFunc("/streams/extract", s.streamHandler.ExtractStreamURLs).Methods(http.MethodPost)
 
 	// Geo utilities
-	api.HandleFunc("/geo/bounding-rect", handler.GetBoundingRectangle).Methods(http.MethodPost)
+	api.HandleFunc("/geo/bounding-rect", s.geoHandler.GetBoundingRectangle).Methods(http.MethodPost)
 
 	// Auth
-	api.HandleFunc("/auth/chat-token", handler.GetChatToken).Methods(http.MethodPost)
+	api.HandleFunc("/auth/chat-token", s.authHandler.GetChatToken).Methods(http.MethodPost)
 
 	// Push notifications
 	api.HandleFunc("/push/subscribe", s.pushHandler.Subscribe).Methods(http.MethodPost)
 	api.HandleFunc("/push/unsubscribe", s.pushHandler.Unsubscribe).Methods(http.MethodPost)
-	api.HandleFunc("/push/safari-package", handler.GetSafariPushPackage).Methods(http.MethodGet)
+	api.HandleFunc("/push/safari-package", s.pushHandler.GetSafariPushPackage).Methods(http.MethodGet)
 
 	// Webhooks
 	api.HandleFunc("/webhooks/discord", handler.SendDiscordWebhook).Methods(http.MethodPost)

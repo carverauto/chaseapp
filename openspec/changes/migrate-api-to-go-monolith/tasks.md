@@ -57,43 +57,43 @@
 
 ## 6. External Data Endpoints (from rocketAPI, weatherAPI)
 
-- [ ] 6.1 Implement `GET /api/v1/quakes` - USGS earthquake data
-- [ ] 6.2 Implement `GET /api/v1/boats` - AISHub vessel data
-- [ ] 6.3 Implement `GET /api/v1/launches` - Rocket launch data
-- [ ] 6.4 Implement `GET /api/v1/weather/alerts` - NOAA/NWS alerts
-- [ ] 6.5 Create external API clients in `internal/external/`
-- [ ] 6.6 Implement caching layer for external API responses
+- [x] 6.1 Implement `GET /api/v1/quakes` - USGS earthquake data
+- [x] 6.2 Implement `GET /api/v1/boats` - AISHub vessel data
+- [x] 6.3 Implement `GET /api/v1/launches` - Rocket launch data
+- [x] 6.4 Implement `GET /api/v1/weather/alerts` - NOAA/NWS alerts
+- [x] 6.5 Create external API clients in `internal/external/`
+- [x] 6.6 Implement caching layer for external API responses
 
 ## 7. Stream Extraction (from getStreams)
 
-- [ ] 7.1 Implement `POST /api/v1/streams/extract` - Extract stream URLs
-- [ ] 7.2 Port Colly web scraper to `pkg/scraper/`
-- [ ] 7.3 Implement NBC LA stream extraction
-- [ ] 7.4 Implement ABC7 m3u8 extraction
-- [ ] 7.5 Implement CBS News video extraction
-- [ ] 7.6 Add network-specific parsers as pluggable modules
+- [x] 7.1 Implement `POST /api/v1/streams/extract` - Extract stream URLs
+- [x] 7.2 Port Colly web scraper to `pkg/scraper/`
+- [x] 7.3 Implement NBC LA stream extraction
+- [x] 7.4 Implement ABC7 m3u8 extraction
+- [x] 7.5 Implement CBS News video extraction
+- [x] 7.6 Add network-specific parsers as pluggable modules
 
 ## 8. Geospatial Utilities (from getRectangle)
 
-- [ ] 8.1 Implement `POST /api/v1/geo/bounding-rect` - Minimum bounding rectangle
-- [ ] 8.2 Port rotating calipers algorithm to `pkg/geojson/`
-- [ ] 8.3 Add GeoJSON parsing utilities
+- [x] 8.1 Implement `POST /api/v1/geo/bounding-rect` - Minimum bounding rectangle
+- [x] 8.2 Port rotating calipers algorithm to `pkg/geojson/`
+- [x] 8.3 Add GeoJSON parsing utilities
 
 ## 9. Authentication & Tokens (from tokens)
 
-- [ ] 9.1 Implement `POST /api/v1/auth/chat-token` - Generate chat tokens
-- [ ] 9.2 Implement custom JWT signing for chat service
-- [ ] 9.3 Integrate with Kong for upstream auth validation
+- [x] 9.1 Implement `POST /api/v1/auth/chat-token` - Generate chat tokens
+- [x] 9.2 Implement custom JWT signing for chat service
+- [x] 9.3 Integrate with Kong for upstream auth validation
 
 ## 10. Push Notifications (from fcmMessaging, manageTokens, pushPackage)
 
 - [x] 10.1 Implement `POST /api/v1/push/subscribe` - Subscribe to notifications
 - [x] 10.2 Implement `POST /api/v1/push/unsubscribe` - Unsubscribe
-- [ ] 10.3 Implement `GET /api/v1/push/safari-package` - Safari push package
-- [ ] 10.4 Port Safari push package generation (P12 signing, ZIP creation)
-- [ ] 10.5 Implement ntfy/Gotify client for push delivery
-- [ ] 10.6 Implement direct APNs client for iOS push
-- [ ] 10.7 Implement direct FCM HTTP v1 API for Android push
+- [x] 10.3 Implement `GET /api/v1/push/safari-package` - Safari push package
+- [x] 10.4 Port Safari push package generation (P12 signing, ZIP creation)
+- [x] 10.5 Implement ntfy/Gotify client for push delivery
+- [x] 10.6 Implement direct APNs client for iOS push
+- [x] 10.7 Implement direct FCM HTTP v1 API for Android push
 
 ## 11. Webhooks (from webhooks, addUser)
 
