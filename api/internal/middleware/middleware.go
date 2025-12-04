@@ -8,6 +8,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -53,6 +54,14 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 
 			next.ServeHTTP(wrapped, r)
 
+			reqID, _ := r.Context().Value(RequestIDKey).(string)
+			traceID := ""
+			if span := trace.SpanFromContext(r.Context()); span != nil {
+				if sc := span.SpanContext(); sc.IsValid() {
+					traceID = sc.TraceID().String()
+				}
+			}
+
 			logger.Info("request",
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
@@ -60,6 +69,8 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 				slog.Duration("duration", time.Since(start)),
 				slog.String("remote_addr", r.RemoteAddr),
 				slog.String("user_agent", r.UserAgent()),
+				slog.String("request_id", reqID),
+				slog.String("trace_id", traceID),
 			)
 		})
 	}

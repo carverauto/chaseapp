@@ -11,12 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"chaseapp.tv/api/internal/auth"
 	"chaseapp.tv/api/internal/config"
 	"chaseapp.tv/api/internal/external"
 	"chaseapp.tv/api/internal/handler"
 	"chaseapp.tv/api/internal/middleware"
+	"chaseapp.tv/api/internal/model"
 	"chaseapp.tv/api/internal/realtime"
 	"chaseapp.tv/api/internal/repository"
+	"chaseapp.tv/api/internal/search"
 	"chaseapp.tv/api/internal/worker"
 	"chaseapp.tv/api/pkg/scraper"
 )
@@ -37,12 +40,19 @@ type Server struct {
 	streamHandler   *handler.StreamHandler
 	geoHandler      *handler.GeoHandler
 	authHandler     *handler.AuthHandler
+	webhookHandler  *handler.WebhookHandler
+	searchHandler   *handler.SearchHandler
 
 	// Realtime
-	publisher *realtime.Publisher
+	publisher  *realtime.Publisher
+	subscriber *realtime.Subscriber
+	js         *realtime.JetStream
 
 	// Workers
 	aircraftWorker *worker.AircraftSyncWorker
+	workerManager  *worker.Manager
+	indexerWorker  *worker.IndexerWorker
+	userWorker     *worker.UserEventWorker
 }
 
 // New creates a new Server instance.
@@ -53,9 +63,21 @@ func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, 
 	aircraftRepo := repository.NewAircraftRepository(pool)
 	pushTokenRepo := repository.NewPushTokenRepository(pool)
 
+	js, err := realtime.NewJetStream(cfg.NATS, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to NATS JetStream: %w", err)
+	}
+	if err := js.EnsureStreams(context.Background()); err != nil {
+		logger.Warn("failed to ensure JetStream streams", slog.Any("error", err))
+	}
 	publisher, err := realtime.NewPublisher(cfg.NATS, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
+	}
+	publisher.js = js
+	subscriber, err := realtime.NewSubscriber(cfg.NATS, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to NATS subscriber: %w", err)
 	}
 
 	externalClient := external.NewClient(cfg.External, logger)
@@ -64,6 +86,17 @@ func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, 
 	if err != nil {
 		return nil, fmt.Errorf("chat token signer init: %w", err)
 	}
+	webhookHandler, err := handler.NewWebhookHandler(cfg.External, logger)
+	if err != nil {
+		return nil, fmt.Errorf("webhook handler init: %w", err)
+	}
+	typesenseClient, err := search.NewClient(cfg.Search)
+	if err != nil {
+		return nil, fmt.Errorf("typesense client init: %w", err)
+	}
+	if err := typesenseClient.EnsureCollection(context.Background()); err != nil {
+		logger.Warn("failed to ensure typesense collection", slog.Any("error", err))
+	}
 
 	s := &Server{
 		cfg:       cfg,
@@ -71,6 +104,7 @@ func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, 
 		router:    mux.NewRouter(),
 		pool:      pool,
 		publisher: publisher,
+		js:        js,
 
 		// Initialize handlers with their dependencies
 		chaseHandler:    handler.NewChaseHandler(chaseRepo, publisher, logger),
@@ -80,9 +114,22 @@ func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, 
 		streamHandler:   handler.NewStreamHandler(chaseRepo, streamExtractor, publisher, logger),
 		geoHandler:      handler.NewGeoHandler(logger),
 		authHandler:     handler.NewAuthHandler(chatSigner, logger),
+		webhookHandler:  webhookHandler,
+		searchHandler:   handler.NewSearchHandler(typesenseClient, logger),
+		subscriber:      subscriber,
 
 		// Workers
 		aircraftWorker: worker.NewAircraftSyncWorker(aircraftRepo, logger),
+		workerManager:  worker.NewManager(logger),
+		indexerWorker:  worker.NewIndexerWorker(subscriber, typesenseClient, logger),
+		userWorker:     worker.NewUserEventWorker(subscriber, webhookHandler.DiscordClient(), logger),
+	}
+
+	// Subscribe to user registration events
+	if err := s.subscriber.SubscribeUsersCreated(func(userID, email string) {
+		logger.Info("received users.created event", slog.String("user_id", userID), slog.String("email", email))
+	}); err != nil {
+		logger.Warn("failed to subscribe to users.created", slog.Any("error", err))
 	}
 
 	s.setupMiddleware()
@@ -102,6 +149,8 @@ func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, 
 func (s *Server) setupMiddleware() {
 	// Apply middleware in order (outermost first)
 	s.router.Use(middleware.Recovery(s.logger))
+	s.router.Use(middleware.RequestID)
+	s.router.Use(middleware.Tracing)
 	s.router.Use(middleware.CORS([]string{"*"})) // TODO: Configure allowed origins
 	s.router.Use(middleware.Metrics)
 	s.router.Use(middleware.Logging(s.logger))
@@ -151,7 +200,10 @@ func (s *Server) setupRoutes() {
 	api.HandleFunc("/push/safari-package", s.pushHandler.GetSafariPushPackage).Methods(http.MethodGet)
 
 	// Webhooks
-	api.HandleFunc("/webhooks/discord", handler.SendDiscordWebhook).Methods(http.MethodPost)
+	api.HandleFunc("/webhooks/discord", s.webhookHandler.SendDiscordWebhook).Methods(http.MethodPost)
+
+	// Search
+	api.HandleFunc("/search", s.searchHandler.Search).Methods(http.MethodGet)
 }
 
 // readinessCheck verifies database connectivity.
@@ -177,6 +229,38 @@ func (s *Server) Start() error {
 		s.logger.Info("starting aircraft sync worker")
 		s.aircraftWorker.Start()
 	}
+	if s.workerManager != nil && s.indexerWorker != nil {
+		s.logger.Info("starting indexer worker")
+		s.workerManager.Go("typesense-indexer", func(ctx context.Context) {
+			if err := s.indexerWorker.Start(ctx); err != nil {
+				s.logger.Warn("indexer worker stopped", slog.Any("error", err))
+			}
+		})
+	}
+	if s.workerManager != nil && s.userWorker != nil {
+		s.logger.Info("starting user event worker")
+		s.workerManager.Go("user-events", func(ctx context.Context) {
+			if err := s.userWorker.Start(ctx); err != nil {
+				s.logger.Warn("user event worker stopped", slog.Any("error", err))
+			}
+		})
+	}
+	if s.workerManager != nil {
+		s.logger.Info("starting stats worker")
+		s.workerManager.Go("stats", func(ctx context.Context) {
+			worker.StatsWorker(ctx, s.logger)
+		})
+
+		s.logger.Info("starting weather worker")
+		s.workerManager.Go("weather", func(ctx context.Context) {
+			worker.WeatherWorker(ctx, s.logger)
+		})
+
+		s.logger.Info("starting media worker")
+		s.workerManager.Go("media", func(ctx context.Context) {
+			worker.MediaWorker(ctx, s.logger)
+		})
+	}
 
 	return s.http.ListenAndServe()
 }
@@ -189,6 +273,12 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 	if s.publisher != nil {
 		s.publisher.Close()
+	}
+	if s.subscriber != nil {
+		s.subscriber.Close()
+	}
+	if s.workerManager != nil {
+		s.workerManager.Stop(ctx)
 	}
 	if s.aircraftWorker != nil {
 		s.aircraftWorker.Stop(ctx)

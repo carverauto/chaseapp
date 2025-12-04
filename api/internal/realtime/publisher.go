@@ -25,6 +25,7 @@ const (
 // Publisher wraps a NATS connection for publishing events.
 type Publisher struct {
 	conn   *nats.Conn
+	js     *JetStream
 	logger *slog.Logger
 }
 
@@ -69,11 +70,14 @@ func (p *Publisher) PublishChase(subject string, chase *model.Chase) error {
 		return fmt.Errorf("marshal chase event: %w", err)
 	}
 
-	if err := p.conn.Publish(subject, payload); err != nil {
-		return fmt.Errorf("publish chase event: %w", err)
+	if p.js != nil {
+		if err := p.js.Publish(subject, payload); err != nil {
+			return fmt.Errorf("publish chase event js: %w", err)
+		}
+		return nil
 	}
 
-	return nil
+	return p.conn.Publish(subject, payload)
 }
 
 // IsConnected reports whether the NATS connection is healthy.

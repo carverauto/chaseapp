@@ -97,40 +97,41 @@
 
 ## 11. Webhooks (from webhooks, addUser)
 
-- [ ] 11.1 Implement `POST /api/v1/webhooks/discord` - Send Discord webhook
-- [ ] 11.2 Create Discord embed builder utility
-- [ ] 11.3 Implement user registration event handler (NATS subscriber)
+- [x] 11.1 Implement `POST /api/v1/webhooks/discord` - Send Discord webhook
+- [x] 11.2 Create Discord embed builder utility
+- [x] 11.3 Implement user registration event handler (NATS subscriber)
 
 ## 12. Search Integration (from algoliaIndex)
 
-- [ ] 12.1 Set up Typesense client
-- [ ] 12.2 Create chase search schema in Typesense
-- [ ] 12.3 Implement search indexing worker (NATS subscriber)
-- [ ] 12.4 Implement `GET /api/v1/search` - Search endpoint (optional)
+- [x] 12.1 Set up Typesense client
+- [x] 12.2 Create chase search schema in Typesense
+- [x] 12.3 Implement search indexing worker (NATS subscriber)
+- [x] 12.4 Implement `GET /api/v1/search` - Search endpoint (optional)
 
 ## 13. Background Workers
 
 - [ ] 13.1 Implement worker manager for goroutine lifecycle
-- [ ] 13.2 Implement Typesense indexer worker
-- [ ] 13.3 Implement statistics aggregation worker
-- [ ] 13.4 Implement weather polling worker
-- [ ] 13.5 Implement MP4 link extraction worker (from fireGetMP4LinkTrigger)
+- [x] 13.1 Implement worker manager for goroutine lifecycle
+- [x] 13.2 Implement Typesense indexer worker
+- [x] 13.3 Implement statistics aggregation worker
+- [x] 13.4 Implement weather polling worker
+- [x] 13.5 Implement MP4 link extraction worker (from fireGetMP4LinkTrigger)
 
 ## 14. NATS Event Handlers
 
-- [ ] 14.1 Set up NATS JetStream streams and consumers
-- [ ] 14.2 Implement `chases.created` event handler
-- [ ] 14.3 Implement `chases.updated` event handler
-- [ ] 14.4 Implement `chases.ended` event handler
-- [ ] 14.5 Implement `users.created` event handler
+- [x] 14.1 Set up NATS JetStream streams and consumers
+- [x] 14.2 Implement `chases.created` event handler
+- [x] 14.3 Implement `chases.updated` event handler
+- [x] 14.4 Implement `chases.ended` event handler
+- [x] 14.5 Implement `users.created` event handler
 - [ ] 14.6 Implement `aircraft.updated` event handler
 
 ## 15. Observability
 
-- [ ] 15.1 Add OpenTelemetry tracing
+- [x] 15.1 Add OpenTelemetry tracing
 - [x] 15.2 Add Prometheus metrics endpoint (`/metrics`)
 - [x] 15.3 Implement structured logging with `log/slog`
-- [ ] 15.4 Add request ID propagation
+- [x] 15.4 Add request ID propagation
 
 ## 16. Testing
 

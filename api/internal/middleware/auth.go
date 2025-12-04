@@ -13,6 +13,8 @@ const (
 	UserIDKey contextKey = "user_id"
 	// UserEmailKey is the context key for user email.
 	UserEmailKey contextKey = "user_email"
+	// RequestIDKey is the context key for request ID.
+	RequestIDKey contextKey = "request_id"
 )
 
 // User represents an authenticated user extracted from request headers.
