@@ -1,0 +1,23 @@
+.plane {
+	background: url('/p1.png') no-repeat 0 -3px;
+	width: 39px;
+	height: 28px;
+}
+
+.ac130 {
+	background: url('/p2.png') no-repeat -2px -5px;
+	width: 47px;
+	height: 53px;
+}
+
+.heli {
+	background: url('/h1.png') no-repeat -3px -6px;
+	width: 52px;
+	height: 54px;
+}
+
+.boat {
+	background: url('/marine.png') no-repeat -101px -246px;
+	width: 8px;
+	height: 18px;
+}

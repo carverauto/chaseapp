@@ -1,0 +1,6 @@
+wp-dist
+dist
+node_modules
+assets
+.eslintrc.js
+

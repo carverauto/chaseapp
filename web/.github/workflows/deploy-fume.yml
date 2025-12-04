@@ -1,0 +1,21 @@
+name: Deploy w fume on push
+
+on:
+  push:
+    branches: [ fume-only ]
+
+jobs:
+  fume:
+    name: Deploy with Fume
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6.0.0
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '14'
+    - name: install yarn
+      run: npm install --global yarn
+    - uses: fumeapp/action@master
+      with:
+        token: ${{ secrets.FUME_TOKEN }}
+        environment: ${GITHUB_REF##*/}

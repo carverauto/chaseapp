@@ -1,0 +1,11 @@
+{
+  "name": "webhooks",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "discord-webhook-node": "^1.1.8",
+    "firebase": "^8.8.1",
+    "firebase-admin": "^9.11.1"
+  }
+}

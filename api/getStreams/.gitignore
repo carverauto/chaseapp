@@ -1,0 +1,5 @@
+vendor
+go.sum
+.idea
+.env
+.env.yaml

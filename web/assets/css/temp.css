@@ -1,0 +1,49 @@
+.orion015 {
+    background: url('imgs/sprites_w-70.png') no-repeat -2px -856px;
+    width: 52px;
+    height: 56px;
+}
+
+.sprite {
+    background: url('imgs/sprites_w-70.png') no-repeat -58px -856px;
+    width: 52px;
+    height: 58px;
+}
+
+.sprite {
+    background: url('imgs/sprites_w-70.png') no-repeat -113px -857px;
+    width: 50px;
+    height: 55px;
+}
+
+.sprite {
+    background: url('imgs/sprites_w-70.png') no-repeat -166px -858px;
+    width: 50px;
+    height: 50px;
+}
+
+.sprite {
+    background: url('imgs/sprites_w-70.png') no-repeat -219px -858px;
+    width: 55px;
+    height: 48px;
+}
+
+.sprite {
+    background: url('imgs/sprites_w-70.png') no-repeat -275px -858px;
+    width: 57px;
+    height: 52px;
+}
+
+.sprite {
+    background: url('imgs/sprites_w-70.png') no-repeat -333px -858px;
+    width: 56px;
+    height: 52px;
+}
+
+.sprite {
+    background: url('imgs/sprites_w-70.png') no-repeat -390px -858px;
+    width: 57px;
+    height: 52px;
+}
+
+

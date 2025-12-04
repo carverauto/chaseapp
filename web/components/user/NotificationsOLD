@@ -1,0 +1,225 @@
+<template>
+  <!--
+  <div class="mt-6">
+    <fieldset>
+      <legend class="text-base font-medium text-gray-900">
+        Push Notifications
+      </legend>
+      <div class="mt-4 space-y-4">
+        <div class=" flex items-start">
+          <div class="flex items-center h-5">
+            <input
+              id="webNotify"
+              v-model="checkWeb"
+              name="webNotify"
+              type="checkbox"
+              true-value="true"
+              false-value="false"
+              class="focus:ring-pink-500 h-4 w-4 text-pink-600 border-gray-300 rounded"
+              @change="notifyChange"
+              @click="startListeners"
+            >
+          </div>
+          <div class="ml-3 text-sm">
+            <label for="webNotify" class="font-medium text-gray-700">Web</label>
+            <p class="text-gray-500">Get notified on the web.</p>
+            <span />
+          </div>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+  -->
+  <div v-if="false" />
+</template>
+
+<script lang="ts">
+import Vue from 'vue'
+import { mapGetters, mapState } from 'vuex'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { getToken, isSupported, onMessage } from 'firebase/messaging'
+import { AuthUser } from '~/types'
+// @ts-ignore
+import { db, messaging } from '~/plugins/firebase'
+
+export default Vue.extend({
+  data () {
+    return {
+      checkWeb: false,
+      idToken: undefined as undefined|any,
+      permissionGranted: undefined as undefined|any,
+      tokenName: '' as ''|string,
+      type: '',
+    }
+  },
+  computed: {
+    ...mapState({
+      // @ts-ignore
+      authUser: state => state.authUser as AuthUser,
+    }),
+    ...mapGetters({
+      isLoggedIn: 'isLoggedIn',
+    }),
+    authUser (): AuthUser {
+      return this.$store.state.authUser
+    },
+  },
+  mounted () {
+    if (isSupported())
+      this.type = 'FCM'
+    else
+      this.type = 'APN'
+
+    // this.getUserData()
+    // this.getSubs()
+  },
+  methods: {
+    async updateUser (token: string): Promise<any> {
+      console.log('In updateUser')
+      console.log(token)
+      try {
+        const tokenRef = doc(db, 'tokens')
+        const tokenSnap = await getDoc(tokenRef)
+        if (tokenSnap.exists()) {
+          console.log(tokenSnap.data())
+          return setDoc(doc(tokenRef, token), {
+            Tokens: [{ token: [token], type: this.type, created_at: Date.now() }],
+          }, { merge: true })
+        } else {
+          console.error('Couldnt update token')
+          this.$toast.show({
+            type: 'danger',
+            title: 'ChaseApp - Web Notifications',
+            message: `Missing token <b>${token}</b>`,
+            timeout: 0,
+          })
+        }
+      } catch (e) {
+        this.$toast.show({
+          type: 'danger',
+          title: 'ChaseApp - Web Notifications',
+          message: `Unable to save notification preferences <b>${e}</b>`,
+          timeout: 0,
+        })
+      }
+      return this.$router.push('/settings')
+    },
+    async requestPermission () {
+      try {
+        const permission = await Notification.requestPermission()
+        return permission === 'granted'
+      } catch (e) {
+        this.$toast.show({
+          type: 'danger',
+          title: 'ChaseApp - Web Notifications',
+          message: `Unable to obtain notification permissions: <b>${e}</b>`,
+          timeout: 0,
+        })
+        console.error(e)
+      }
+    },
+    Unsubscribe () {
+      // @ts-ignore
+      getToken(messaging).then(async (currentToken: string) => {
+        if (currentToken)
+          try {
+            await this.$axios.post('/UnsubscribeTopic',
+              {
+                Token: [currentToken],
+                Topic: 'networks',
+              },
+            )
+          } catch (e) {
+            console.error(e)
+          }
+      })
+    },
+    getIdToken () {
+      if (this.type === 'FCM')
+        // @ts-ignore
+        getToken(messaging).then(async (currentToken: string) => {
+          if (currentToken) {
+            // @ts-ignore
+            await this.updateUser(currentToken)
+            return currentToken
+          } else
+            this.$toast.show({
+              type: 'danger',
+              title: 'FCM - ID Token',
+              message: 'No instance ID token available',
+              timeout: 0,
+            })
+        })
+      else {
+        // safari
+        // get the safari token..
+      }
+      // show permission UI
+      // await this.requestPermission()
+    },
+    async startListeners () {
+      // if enabling web notifications..
+      if (!this.checkWeb)
+        if (this.type === 'FCM') {
+          try {
+            await this.startOnMessageListener()
+          } catch (e) {
+            this.$toast.show({
+              type: 'danger',
+              title: 'FCM - Message Listener',
+              message: `Can't start listener <b>${e}</b>`,
+              timeout: 0,
+            })
+          }
+          // docs say this is deprecated, see below
+          // this.startTokenRefreshListener()
+          this.$toast.show({
+            type: 'success',
+            title: 'ChaseApp - Web Notifications',
+            message: 'Enabling web notifications',
+            timeout: 3,
+          })
+        // this.idToken = await this.getIdToken()
+        // await this.requestPermission()
+        }
+      // disabling web notifications
+      // await this.Unsubscribe()
+    },
+    // startOnMessageListener is for FCM only
+    startOnMessageListener () {
+      // @ts-ignore
+      onMessage(messaging, (payload: any) => {
+        this.$toast.show({
+          type: 'success',
+          title: payload.notification.title,
+          message: payload.notification.body,
+          timeout: 3,
+        })
+      })
+    },
+    notifyChange () {
+      this.$nextTick(() => {
+        // @ts-ignore
+        this.resetChecks()
+      })
+    },
+    async getUserData () {
+      if (this.isLoggedIn) {
+        // @ts-ignore
+        const queryRef = doc(db, 'users', this.authUser.uid)
+        const querySnap = await getDoc(queryRef)
+
+        if (querySnap.exists())
+          // @ts-ignore
+          this.checkWeb = querySnap.data().profile.notifications.web
+        else
+          console.log('No notifications set')
+      }
+    },
+    resetChecks () {
+      // @ts-ignore
+      this.checkWeb = false
+    },
+  },
+})
+</script>

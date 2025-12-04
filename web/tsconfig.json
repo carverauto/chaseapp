@@ -1,0 +1,50 @@
+{
+  "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "types": [
+      "vue-meta"
+    ],
+    "lib": [
+      "ESNext",
+      "ESNext.AsyncIterable",
+      "DOM"
+    ],
+    "esModuleInterop": true,
+    "allowJs": true,
+    "sourceMap": true,
+    "strict": true,
+    "noEmit": true,
+    "experimentalDecorators": true,
+    // "strictFunctionTypes": false,
+    "baseUrl": ".",
+    "paths": {
+      "~/*": [
+        "./*"
+      ],
+      "@/*": [
+        "./*"
+      ]
+    },
+    "types": [
+      "@types/node",
+      "@nuxt/types",
+      "@nuxtjs/dayjs",
+      "dayjs/plugin/relativeTime",
+      "dayjs/plugin/utc",
+      "nuxt-tailvue",
+      "@nuxtjs/axios",
+      "@firebase/app-types",
+      "@types/firebase",
+      "vue-meta"
+    ]
+  },
+  "exclude": [
+    "node_modules",
+    ".nuxt",
+    ".output",
+    "dist"
+  ]
+}
