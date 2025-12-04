@@ -9,3 +9,5 @@ patchesStrategicMerge:
 images:
   - name: ghcr.io/carverauto/chaseapp-web
     newTag: prod
+  - name: ghcr.io/carverauto/chaseapp-api
+    newTag: prod

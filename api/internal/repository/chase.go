@@ -365,6 +365,17 @@ func (r *ChaseRepository) GetLiveChases(ctx context.Context) ([]model.Chase, err
 	return result.Chases, nil
 }
 
+// CountChases returns total and live counts.
+func (r *ChaseRepository) CountChases(ctx context.Context) (total int, live int, err error) {
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM chases WHERE deleted_at IS NULL`).Scan(&total); err != nil {
+		return 0, 0, fmt.Errorf("count chases: %w", err)
+	}
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM chases WHERE deleted_at IS NULL AND live = true`).Scan(&live); err != nil {
+		return 0, 0, fmt.Errorf("count live chases: %w", err)
+	}
+	return total, live, nil
+}
+
 func boolPtr(b bool) *bool {
 	return &b
 }

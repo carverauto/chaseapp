@@ -17,6 +17,7 @@ import (
 	"chaseapp.tv/api/internal/handler"
 	"chaseapp.tv/api/internal/middleware"
 	"chaseapp.tv/api/internal/model"
+	"chaseapp.tv/api/internal/observability"
 	"chaseapp.tv/api/internal/realtime"
 	"chaseapp.tv/api/internal/repository"
 	"chaseapp.tv/api/internal/search"
@@ -53,10 +54,22 @@ type Server struct {
 	workerManager  *worker.Manager
 	indexerWorker  *worker.IndexerWorker
 	userWorker     *worker.UserEventWorker
+	airWorker      *worker.AircraftEventWorker
+	statsWorker    *worker.StatsWorker
+	weatherWorker  *worker.WeatherWorker
+	mediaWorker    *worker.MediaWorker
+
+	// Observability
+	traceShutdown func(context.Context) error
 }
 
 // New creates a new Server instance.
 func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, error) {
+	traceShutdown, err := observability.SetupTracing(context.Background(), cfg.Observability, logger)
+	if err != nil {
+		logger.Warn("failed to setup tracing", slog.Any("error", err))
+	}
+
 	// Initialize repositories
 	chaseRepo := repository.NewChaseRepository(pool)
 	userRepo := repository.NewUserRepository(pool)
@@ -123,6 +136,10 @@ func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, 
 		workerManager:  worker.NewManager(logger),
 		indexerWorker:  worker.NewIndexerWorker(subscriber, typesenseClient, logger),
 		userWorker:     worker.NewUserEventWorker(subscriber, webhookHandler.DiscordClient(), logger),
+		airWorker:      worker.NewAircraftEventWorker(subscriber, logger),
+		statsWorker:    worker.NewStatsWorker(chaseRepo, logger),
+		weatherWorker:  worker.NewWeatherWorker(externalClient, logger),
+		mediaWorker:    worker.NewMediaWorker(chaseRepo, streamExtractor, logger),
 	}
 
 	// Subscribe to user registration events
@@ -245,21 +262,33 @@ func (s *Server) Start() error {
 			}
 		})
 	}
+	if s.workerManager != nil && s.airWorker != nil {
+		s.logger.Info("starting aircraft event worker")
+		s.workerManager.Go("aircraft-events", func(ctx context.Context) {
+			if err := s.airWorker.Start(ctx); err != nil {
+				s.logger.Warn("aircraft event worker stopped", slog.Any("error", err))
+			}
+		})
+	}
 	if s.workerManager != nil {
-		s.logger.Info("starting stats worker")
-		s.workerManager.Go("stats", func(ctx context.Context) {
-			worker.StatsWorker(ctx, s.logger)
-		})
-
-		s.logger.Info("starting weather worker")
-		s.workerManager.Go("weather", func(ctx context.Context) {
-			worker.WeatherWorker(ctx, s.logger)
-		})
-
-		s.logger.Info("starting media worker")
-		s.workerManager.Go("media", func(ctx context.Context) {
-			worker.MediaWorker(ctx, s.logger)
-		})
+		if s.statsWorker != nil {
+			s.logger.Info("starting stats worker")
+			s.workerManager.Go("stats", func(ctx context.Context) {
+				s.statsWorker.Start(ctx)
+			})
+		}
+		if s.weatherWorker != nil {
+			s.logger.Info("starting weather worker")
+			s.workerManager.Go("weather", func(ctx context.Context) {
+				s.weatherWorker.Start(ctx)
+			})
+		}
+		if s.mediaWorker != nil {
+			s.logger.Info("starting media worker")
+			s.workerManager.Go("media", func(ctx context.Context) {
+				s.mediaWorker.Start(ctx)
+			})
+		}
 	}
 
 	return s.http.ListenAndServe()
@@ -282,6 +311,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 	if s.aircraftWorker != nil {
 		s.aircraftWorker.Stop(ctx)
+	}
+	if s.traceShutdown != nil {
+		_ = s.traceShutdown(ctx)
 	}
 	return nil
 }

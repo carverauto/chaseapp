@@ -80,6 +80,21 @@ func (s *Subscriber) SubscribeChases(handler func(event string, chase *model.Cha
 	return nil
 }
 
+// SubscribeAircraftUpdated subscribes to aircraft.updated events.
+func (s *Subscriber) SubscribeAircraftUpdated(handler func(payload json.RawMessage)) error {
+	if s == nil || s.conn == nil {
+		return fmt.Errorf("subscriber not initialized")
+	}
+	sub, err := s.conn.Subscribe(SubjectAircraftUpdated, func(msg *nats.Msg) {
+		handler(json.RawMessage(msg.Data))
+	})
+	if err != nil {
+		return err
+	}
+	s.subject = append(s.subject, sub.Subject)
+	return nil
+}
+
 // Close closes the subscriber connection.
 func (s *Subscriber) Close() {
 	if s == nil || s.conn == nil {

@@ -51,6 +51,7 @@ func (j *JetStream) EnsureStreams(ctx context.Context) error {
 	}{
 		{Name: "chases", Subjects: []string{"chases.*"}},
 		{Name: "users", Subjects: []string{"users.*"}},
+		{Name: "aircraft", Subjects: []string{"aircraft.*"}},
 	}
 
 	for _, s := range streams {

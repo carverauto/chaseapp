@@ -20,6 +20,7 @@ const (
 	SubjectChaseEnded   = "chases.ended"
 	SubjectChaseLive    = "chases.live"
 	SubjectChaseDeleted = "chases.deleted"
+	SubjectAircraftUpdated = "aircraft.updated"
 )
 
 // Publisher wraps a NATS connection for publishing events.

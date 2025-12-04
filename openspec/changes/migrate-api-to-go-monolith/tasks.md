@@ -124,7 +124,7 @@
 - [x] 14.3 Implement `chases.updated` event handler
 - [x] 14.4 Implement `chases.ended` event handler
 - [x] 14.5 Implement `users.created` event handler
-- [ ] 14.6 Implement `aircraft.updated` event handler
+- [x] 14.6 Implement `aircraft.updated` event handler
 
 ## 15. Observability
 
@@ -136,21 +136,22 @@
 ## 16. Testing
 
 - [ ] 16.1 Set up testcontainers for integration tests
-- [ ] 16.2 Write unit tests for repository layer
+- [x] 16.1 Set up testcontainers for integration tests
+- [x] 16.2 Write unit tests for repository layer
 - [ ] 16.3 Write unit tests for service layer
 - [ ] 16.4 Write integration tests for HTTP handlers
 - [ ] 16.5 Write integration tests for NATS event handlers
-- [ ] 16.6 Set up CI pipeline with tests
+- [x] 16.6 Set up CI pipeline with tests
 
 ## 17. Kubernetes Deployment
 
-- [ ] 17.1 Create K8s Deployment manifest for API
-- [ ] 17.2 Create K8s Service manifest
-- [ ] 17.3 Create K8s ConfigMap for configuration
-- [ ] 17.4 Create K8s Secret for sensitive config
+- [x] 17.1 Create K8s Deployment manifest for API
+- [x] 17.2 Create K8s Service manifest
+- [x] 17.3 Create K8s ConfigMap for configuration
+- [x] 17.4 Create K8s Secret for sensitive config
 - [ ] 17.5 Update Kong Ingress routes
-- [ ] 17.6 Create HorizontalPodAutoscaler
-- [ ] 17.7 Add to Kustomize overlays (staging, prod)
+- [x] 17.6 Create HorizontalPodAutoscaler
+- [x] 17.7 Add to Kustomize overlays (staging, prod)
 
 ## 18. Data Migration
 

@@ -7,6 +7,12 @@ commonLabels:
 resources:
   - deployment.yaml
   - service.yaml
+  - api-deployment.yaml
+  - api-service.yaml
+  - api-configmap.yaml
+  - api-secret.yaml
+  - api-hpa.yaml
+  - api-ingress.yaml
   - ingress.yaml
   - rbac/serviceaccount.yaml
   - rbac/role.yaml
@@ -14,4 +20,6 @@ resources:
 
 images:
   - name: ghcr.io/carverauto/chaseapp-web
+    newTag: latest
+  - name: ghcr.io/carverauto/chaseapp-api
     newTag: latest

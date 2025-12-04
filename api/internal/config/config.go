@@ -10,13 +10,14 @@ import (
 
 // Config holds all configuration for the API server.
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	NATS     NATSConfig
-	Search   SearchConfig
-	Push     PushConfig
-	Chat     ChatConfig
-	External ExternalConfig
+	Server        ServerConfig
+	Database      DatabaseConfig
+	NATS          NATSConfig
+	Search        SearchConfig
+	Push          PushConfig
+	Chat          ChatConfig
+	External      ExternalConfig
+	Observability ObservabilityConfig
 }
 
 // ServerConfig holds HTTP server configuration.
@@ -104,6 +105,14 @@ type ExternalConfig struct {
 	DiscordWebhook       string
 }
 
+// ObservabilityConfig holds tracing/metrics settings.
+type ObservabilityConfig struct {
+	ServiceName  string
+	OTLPEndpoint string
+	OTLPHeaders  string
+	OTLPInsecure bool
+}
+
 // Load reads configuration from environment variables.
 func Load() (*Config, error) {
 	cfg := &Config{
@@ -165,6 +174,12 @@ func Load() (*Config, error) {
 			LaunchLibraryBaseURL: getEnv("LAUNCH_LIBRARY_BASE_URL", "https://ll.thespacedevs.com/2.2.0"),
 			DiscordWebhook:       getEnv("DISCORD_WEBHOOK_URL", ""),
 		},
+		Observability: ObservabilityConfig{
+			ServiceName:  getEnv("OTEL_SERVICE_NAME", "chaseapp-api"),
+			OTLPEndpoint: getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
+			OTLPHeaders:  getEnv("OTEL_EXPORTER_OTLP_HEADERS", ""),
+			OTLPInsecure: getEnvBool("OTEL_EXPORTER_OTLP_INSECURE", false),
+		},
 	}
 
 	return cfg, nil
@@ -193,6 +208,19 @@ func getEnvDuration(key string, defaultVal time.Duration) time.Duration {
 	if val := os.Getenv(key); val != "" {
 		if d, err := time.ParseDuration(val); err == nil {
 			return d
+		}
+	}
+	return defaultVal
+}
+
+// getEnvBool returns an environment variable as bool or a default value.
+func getEnvBool(key string, defaultVal bool) bool {
+	if val := os.Getenv(key); val != "" {
+		switch val {
+		case "1", "true", "TRUE", "True", "yes", "YES", "Yes":
+			return true
+		case "0", "false", "FALSE", "False", "no", "NO", "No":
+			return false
 		}
 	}
 	return defaultVal
