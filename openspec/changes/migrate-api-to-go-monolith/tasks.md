@@ -13,16 +13,16 @@
 
 ## 2. Database Layer
 
-- [ ] 2.1 Design PostgreSQL schema for chases table
-- [ ] 2.2 Design PostgreSQL schema for users table
-- [ ] 2.3 Design PostgreSQL schema for aircraft/ADSB table
-- [ ] 2.4 Design PostgreSQL schema for push tokens table
-- [ ] 2.5 Design PostgreSQL schema for statistics table
-- [ ] 2.6 Create initial migration files with golang-migrate
-- [ ] 2.7 Implement chase repository (CRUD operations)
-- [ ] 2.8 Implement user repository
-- [ ] 2.9 Implement aircraft repository
-- [ ] 2.10 Implement token repository
+- [x] 2.1 Design PostgreSQL schema for chases table
+- [x] 2.2 Design PostgreSQL schema for users table
+- [x] 2.3 Design PostgreSQL schema for aircraft/ADSB table
+- [x] 2.4 Design PostgreSQL schema for push tokens table
+- [x] 2.5 Design PostgreSQL schema for statistics table
+- [x] 2.6 Create initial migration files with golang-migrate
+- [x] 2.7 Implement chase repository (CRUD operations)
+- [x] 2.8 Implement user repository
+- [x] 2.9 Implement aircraft repository
+- [x] 2.10 Implement token repository
 
 ## 3. Core HTTP Server
 
@@ -32,24 +32,24 @@
 - [x] 3.4 Implement CORS middleware
 - [x] 3.5 Implement request logging middleware
 - [x] 3.6 Implement auth middleware (extract user from Kong headers)
-- [ ] 3.7 Implement rate limiting middleware
+- [x] 3.7 Implement rate limiting middleware
 - [x] 3.8 Implement health check endpoint (`/health`)
 - [x] 3.9 Implement readiness check endpoint (`/ready`)
 
 ## 4. Chase Endpoints (from API, updateChase, chaseStats, createBundle)
 
-- [ ] 4.1 Implement `GET /api/v1/chases` - List chases with pagination
-- [ ] 4.2 Implement `POST /api/v1/chases` - Create chase
-- [ ] 4.3 Implement `GET /api/v1/chases/{id}` - Get single chase
-- [ ] 4.4 Implement `PUT /api/v1/chases/{id}` - Update chase
-- [ ] 4.5 Implement `DELETE /api/v1/chases/{id}` - Delete chase
-- [ ] 4.6 Implement `GET /api/v1/chases/bundle` - Offline data bundle
-- [ ] 4.7 Implement chase lifecycle logic (Live status, EndedAt timestamp)
+- [x] 4.1 Implement `GET /api/v1/chases` - List chases with pagination
+- [x] 4.2 Implement `POST /api/v1/chases` - Create chase
+- [x] 4.3 Implement `GET /api/v1/chases/{id}` - Get single chase
+- [x] 4.4 Implement `PUT /api/v1/chases/{id}` - Update chase
+- [x] 4.5 Implement `DELETE /api/v1/chases/{id}` - Delete chase
+- [x] 4.6 Implement `GET /api/v1/chases/bundle` - Offline data bundle
+- [x] 4.7 Implement chase lifecycle logic (Live status, EndedAt timestamp)
 - [ ] 4.8 Publish chase events to NATS on create/update/delete
 
 ## 5. Aircraft Endpoints (from API, bof, bofTS, updateRTDB)
 
-- [ ] 5.1 Implement `GET /api/v1/aircraft` - List aircraft
+- [x] 5.1 Implement `GET /api/v1/aircraft` - List aircraft
 - [ ] 5.2 Implement `POST /api/v1/aircraft/cluster` - DBSCAN clustering
 - [ ] 5.3 Port DBSCAN algorithm to `pkg/dbscan/`
 - [ ] 5.4 Implement BoF (Birds of a Feather) clustering logic
@@ -87,8 +87,8 @@
 
 ## 10. Push Notifications (from fcmMessaging, manageTokens, pushPackage)
 
-- [ ] 10.1 Implement `POST /api/v1/push/subscribe` - Subscribe to notifications
-- [ ] 10.2 Implement `POST /api/v1/push/unsubscribe` - Unsubscribe
+- [x] 10.1 Implement `POST /api/v1/push/subscribe` - Subscribe to notifications
+- [x] 10.2 Implement `POST /api/v1/push/unsubscribe` - Unsubscribe
 - [ ] 10.3 Implement `GET /api/v1/push/safari-package` - Safari push package
 - [ ] 10.4 Port Safari push package generation (P12 signing, ZIP creation)
 - [ ] 10.5 Implement ntfy/Gotify client for push delivery

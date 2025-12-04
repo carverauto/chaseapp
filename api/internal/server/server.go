@@ -8,11 +8,13 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"chaseapp.tv/api/internal/config"
 	"chaseapp.tv/api/internal/handler"
 	"chaseapp.tv/api/internal/middleware"
+	"chaseapp.tv/api/internal/repository"
 )
 
 // Server represents the HTTP server.
@@ -21,14 +23,32 @@ type Server struct {
 	logger *slog.Logger
 	router *mux.Router
 	http   *http.Server
+	pool   *pgxpool.Pool
+
+	// Handlers
+	chaseHandler    *handler.ChaseHandler
+	aircraftHandler *handler.AircraftHandler
+	pushHandler     *handler.PushHandler
 }
 
 // New creates a new Server instance.
-func New(cfg *config.Config, logger *slog.Logger) *Server {
+func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) *Server {
+	// Initialize repositories
+	chaseRepo := repository.NewChaseRepository(pool)
+	userRepo := repository.NewUserRepository(pool)
+	aircraftRepo := repository.NewAircraftRepository(pool)
+	pushTokenRepo := repository.NewPushTokenRepository(pool)
+
 	s := &Server{
 		cfg:    cfg,
 		logger: logger,
 		router: mux.NewRouter(),
+		pool:   pool,
+
+		// Initialize handlers with their dependencies
+		chaseHandler:    handler.NewChaseHandler(chaseRepo, logger),
+		aircraftHandler: handler.NewAircraftHandler(aircraftRepo, logger),
+		pushHandler:     handler.NewPushHandler(pushTokenRepo, userRepo, logger),
 	}
 
 	s.setupMiddleware()
@@ -58,25 +78,25 @@ func (s *Server) setupMiddleware() {
 func (s *Server) setupRoutes() {
 	// Health and metrics endpoints (no auth required)
 	s.router.HandleFunc("/health", handler.HealthCheck).Methods(http.MethodGet)
-	s.router.HandleFunc("/ready", handler.ReadinessCheck).Methods(http.MethodGet)
+	s.router.HandleFunc("/ready", s.readinessCheck).Methods(http.MethodGet)
 	s.router.Handle("/metrics", promhttp.Handler()).Methods(http.MethodGet)
 
 	// API v1 routes
 	api := s.router.PathPrefix("/api/v1").Subrouter()
 
 	// Chases
-	api.HandleFunc("/chases", handler.ListChases).Methods(http.MethodGet)
-	api.HandleFunc("/chases", handler.CreateChase).Methods(http.MethodPost)
-	api.HandleFunc("/chases/bundle", handler.GetChasesBundle).Methods(http.MethodGet)
-	api.HandleFunc("/chases/{id}", handler.GetChase).Methods(http.MethodGet)
-	api.HandleFunc("/chases/{id}", handler.UpdateChase).Methods(http.MethodPut)
-	api.HandleFunc("/chases/{id}", handler.DeleteChase).Methods(http.MethodDelete)
+	api.HandleFunc("/chases", s.chaseHandler.List).Methods(http.MethodGet)
+	api.HandleFunc("/chases", s.chaseHandler.Create).Methods(http.MethodPost)
+	api.HandleFunc("/chases/bundle", s.chaseHandler.GetBundle).Methods(http.MethodGet)
+	api.HandleFunc("/chases/{id}", s.chaseHandler.Get).Methods(http.MethodGet)
+	api.HandleFunc("/chases/{id}", s.chaseHandler.Update).Methods(http.MethodPut)
+	api.HandleFunc("/chases/{id}", s.chaseHandler.Delete).Methods(http.MethodDelete)
 
 	// Aircraft
-	api.HandleFunc("/aircraft", handler.ListAircraft).Methods(http.MethodGet)
-	api.HandleFunc("/aircraft/cluster", handler.ClusterAircraft).Methods(http.MethodPost)
+	api.HandleFunc("/aircraft", s.aircraftHandler.List).Methods(http.MethodGet)
+	api.HandleFunc("/aircraft/cluster", s.aircraftHandler.Cluster).Methods(http.MethodPost)
 
-	// External data
+	// External data (stub handlers for now)
 	api.HandleFunc("/quakes", handler.GetQuakes).Methods(http.MethodGet)
 	api.HandleFunc("/boats", handler.GetBoats).Methods(http.MethodGet)
 	api.HandleFunc("/launches", handler.GetLaunches).Methods(http.MethodGet)
@@ -92,12 +112,21 @@ func (s *Server) setupRoutes() {
 	api.HandleFunc("/auth/chat-token", handler.GetChatToken).Methods(http.MethodPost)
 
 	// Push notifications
-	api.HandleFunc("/push/subscribe", handler.SubscribePush).Methods(http.MethodPost)
-	api.HandleFunc("/push/unsubscribe", handler.UnsubscribePush).Methods(http.MethodPost)
+	api.HandleFunc("/push/subscribe", s.pushHandler.Subscribe).Methods(http.MethodPost)
+	api.HandleFunc("/push/unsubscribe", s.pushHandler.Unsubscribe).Methods(http.MethodPost)
 	api.HandleFunc("/push/safari-package", handler.GetSafariPushPackage).Methods(http.MethodGet)
 
 	// Webhooks
 	api.HandleFunc("/webhooks/discord", handler.SendDiscordWebhook).Methods(http.MethodPost)
+}
+
+// readinessCheck verifies database connectivity.
+func (s *Server) readinessCheck(w http.ResponseWriter, r *http.Request) {
+	if err := s.pool.Ping(r.Context()); err != nil {
+		handler.Error(w, http.StatusServiceUnavailable, "database not ready")
+		return
+	}
+	handler.JSON(w, http.StatusOK, map[string]string{"status": "ready"})
 }
 
 // Start begins listening for HTTP requests.

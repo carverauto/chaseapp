@@ -1,66 +1,306 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
+	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+
+	"chaseapp.tv/api/internal/middleware"
+	"chaseapp.tv/api/internal/model"
+	"chaseapp.tv/api/internal/repository"
 )
 
-// ListChases returns a paginated list of chases.
+// ChaseHandler handles chase-related HTTP requests.
+type ChaseHandler struct {
+	repo   *repository.ChaseRepository
+	logger *slog.Logger
+}
+
+// NewChaseHandler creates a new ChaseHandler.
+func NewChaseHandler(repo *repository.ChaseRepository, logger *slog.Logger) *ChaseHandler {
+	return &ChaseHandler{
+		repo:   repo,
+		logger: logger,
+	}
+}
+
+// List returns a paginated list of chases.
 // GET /api/v1/chases
-func ListChases(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement with repository
-	JSON(w, http.StatusOK, map[string]any{
-		"chases": []any{},
-		"total":  0,
-		"page":   1,
-		"limit":  20,
-	})
+func (h *ChaseHandler) List(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Parse query parameters
+	opts := model.ChaseListOptions{
+		Page:  1,
+		Limit: 20,
+	}
+
+	if page := r.URL.Query().Get("page"); page != "" {
+		if p, err := strconv.Atoi(page); err == nil && p > 0 {
+			opts.Page = p
+		}
+	}
+
+	if limit := r.URL.Query().Get("limit"); limit != "" {
+		if l, err := strconv.Atoi(limit); err == nil && l > 0 && l <= 100 {
+			opts.Limit = l
+		}
+	}
+
+	if live := r.URL.Query().Get("live"); live != "" {
+		b := live == "true" || live == "1"
+		opts.Live = &b
+	}
+
+	if chaseType := r.URL.Query().Get("type"); chaseType != "" {
+		opts.ChaseType = model.ChaseType(chaseType)
+	}
+
+	if city := r.URL.Query().Get("city"); city != "" {
+		opts.City = city
+	}
+
+	if state := r.URL.Query().Get("state"); state != "" {
+		opts.State = state
+	}
+
+	result, err := h.repo.List(ctx, opts)
+	if err != nil {
+		h.logger.Error("failed to list chases", slog.Any("error", err))
+		Error(w, http.StatusInternalServerError, "Failed to retrieve chases")
+		return
+	}
+
+	JSON(w, http.StatusOK, result)
 }
 
-// CreateChase creates a new chase.
+// Create creates a new chase.
 // POST /api/v1/chases
-func CreateChase(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement with repository
-	Error(w, http.StatusNotImplemented, "Not implemented")
+func (h *ChaseHandler) Create(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var input model.CreateChaseInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		Error(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Validate required fields
+	if input.Title == "" {
+		Error(w, http.StatusBadRequest, "Title is required")
+		return
+	}
+	if input.ChaseType == "" {
+		Error(w, http.StatusBadRequest, "Chase type is required")
+		return
+	}
+
+	// Get user ID from context if authenticated
+	var createdBy *uuid.UUID
+	if userIDStr, ok := ctx.Value(middleware.UserIDKey).(string); ok && userIDStr != "" {
+		if uid, err := uuid.Parse(userIDStr); err == nil {
+			createdBy = &uid
+		}
+	}
+
+	chase, err := h.repo.Create(ctx, input, createdBy)
+	if err != nil {
+		h.logger.Error("failed to create chase",
+			slog.Any("error", err),
+			slog.String("title", input.Title),
+		)
+		Error(w, http.StatusInternalServerError, "Failed to create chase")
+		return
+	}
+
+	h.logger.Info("chase created",
+		slog.String("id", chase.ID.String()),
+		slog.String("title", chase.Title),
+	)
+
+	// TODO: Publish chase.created event to NATS
+
+	JSON(w, http.StatusCreated, chase)
 }
 
-// GetChase returns a single chase by ID.
+// Get retrieves a single chase by ID.
 // GET /api/v1/chases/{id}
-func GetChase(w http.ResponseWriter, r *http.Request) {
+func (h *ChaseHandler) Get(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
-	id := vars["id"]
 
-	// TODO: Implement with repository
-	_ = id
-	Error(w, http.StatusNotImplemented, "Not implemented")
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		Error(w, http.StatusBadRequest, "Invalid chase ID")
+		return
+	}
+
+	chase, err := h.repo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			Error(w, http.StatusNotFound, "Chase not found")
+			return
+		}
+		h.logger.Error("failed to get chase",
+			slog.Any("error", err),
+			slog.String("id", id.String()),
+		)
+		Error(w, http.StatusInternalServerError, "Failed to retrieve chase")
+		return
+	}
+
+	// Optionally increment view count
+	if r.URL.Query().Get("track_view") == "true" {
+		go func() {
+			if err := h.repo.IncrementViewCount(ctx, id); err != nil {
+				h.logger.Warn("failed to increment view count",
+					slog.Any("error", err),
+					slog.String("id", id.String()),
+				)
+			}
+		}()
+	}
+
+	JSON(w, http.StatusOK, chase)
 }
 
-// UpdateChase updates an existing chase.
+// Update updates an existing chase.
 // PUT /api/v1/chases/{id}
-func UpdateChase(w http.ResponseWriter, r *http.Request) {
+func (h *ChaseHandler) Update(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
-	id := vars["id"]
 
-	// TODO: Implement with repository
-	_ = id
-	Error(w, http.StatusNotImplemented, "Not implemented")
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		Error(w, http.StatusBadRequest, "Invalid chase ID")
+		return
+	}
+
+	var input model.UpdateChaseInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		Error(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	chase, err := h.repo.Update(ctx, id, input)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			Error(w, http.StatusNotFound, "Chase not found")
+			return
+		}
+		h.logger.Error("failed to update chase",
+			slog.Any("error", err),
+			slog.String("id", id.String()),
+		)
+		Error(w, http.StatusInternalServerError, "Failed to update chase")
+		return
+	}
+
+	h.logger.Info("chase updated",
+		slog.String("id", chase.ID.String()),
+		slog.Bool("live", chase.Live),
+	)
+
+	// TODO: Publish chase.updated event to NATS
+	// If chase ended (live was true, now false), also publish chase.ended
+
+	JSON(w, http.StatusOK, chase)
 }
 
-// DeleteChase deletes a chase.
+// Delete soft-deletes a chase.
 // DELETE /api/v1/chases/{id}
-func DeleteChase(w http.ResponseWriter, r *http.Request) {
+func (h *ChaseHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
-	id := vars["id"]
 
-	// TODO: Implement with repository
-	_ = id
-	Error(w, http.StatusNotImplemented, "Not implemented")
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		Error(w, http.StatusBadRequest, "Invalid chase ID")
+		return
+	}
+
+	if err := h.repo.Delete(ctx, id); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			Error(w, http.StatusNotFound, "Chase not found")
+			return
+		}
+		h.logger.Error("failed to delete chase",
+			slog.Any("error", err),
+			slog.String("id", id.String()),
+		)
+		Error(w, http.StatusInternalServerError, "Failed to delete chase")
+		return
+	}
+
+	h.logger.Info("chase deleted", slog.String("id", id.String()))
+
+	// TODO: Publish chase.deleted event to NATS
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
-// GetChasesBundle returns an offline data bundle.
+// GetBundle returns an offline data bundle of recent chases.
 // GET /api/v1/chases/bundle
-func GetChasesBundle(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement bundle generation
-	Error(w, http.StatusNotImplemented, "Not implemented")
+func (h *ChaseHandler) GetBundle(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Get live chases
+	liveChases, err := h.repo.GetLiveChases(ctx)
+	if err != nil {
+		h.logger.Error("failed to get live chases", slog.Any("error", err))
+		Error(w, http.StatusInternalServerError, "Failed to generate bundle")
+		return
+	}
+
+	// Get recent ended chases
+	recentOpts := model.ChaseListOptions{
+		Page:  1,
+		Limit: 50,
+	}
+	recentResult, err := h.repo.List(ctx, recentOpts)
+	if err != nil {
+		h.logger.Error("failed to get recent chases", slog.Any("error", err))
+		Error(w, http.StatusInternalServerError, "Failed to generate bundle")
+		return
+	}
+
+	bundle := map[string]any{
+		"live":   liveChases,
+		"recent": recentResult.Chases,
+		"meta": map[string]any{
+			"live_count":   len(liveChases),
+			"recent_count": len(recentResult.Chases),
+		},
+	}
+
+	JSON(w, http.StatusOK, bundle)
+}
+
+// IncrementShare increments the share count for a chase.
+// POST /api/v1/chases/{id}/share
+func (h *ChaseHandler) IncrementShare(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	vars := mux.Vars(r)
+
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		Error(w, http.StatusBadRequest, "Invalid chase ID")
+		return
+	}
+
+	if err := h.repo.IncrementShareCount(ctx, id); err != nil {
+		h.logger.Error("failed to increment share count",
+			slog.Any("error", err),
+			slog.String("id", id.String()),
+		)
+		Error(w, http.StatusInternalServerError, "Failed to record share")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
