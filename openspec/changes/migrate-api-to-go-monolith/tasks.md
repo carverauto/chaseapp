@@ -2,14 +2,14 @@
 
 ## 1. Project Setup
 
-- [ ] 1.1 Initialize Go module at `api/` with `go mod init chaseapp.tv/api`
-- [ ] 1.2 Create directory structure (`cmd/`, `internal/`, `pkg/`, `migrations/`)
-- [ ] 1.3 Add Gorilla Mux dependency (`github.com/gorilla/mux`)
-- [ ] 1.4 Add PostgreSQL driver (`github.com/jackc/pgx/v5`)
-- [ ] 1.5 Add NATS client (`github.com/nats-io/nats.go`)
-- [ ] 1.6 Set up configuration loading with environment variables
-- [ ] 1.7 Create Dockerfile for the API service
-- [ ] 1.8 Create docker-compose.yml for local development (PostgreSQL, NATS, Typesense)
+- [x] 1.1 Initialize Go module at `api/` with `go mod init chaseapp.tv/api`
+- [x] 1.2 Create directory structure (`cmd/`, `internal/`, `pkg/`, `migrations/`)
+- [x] 1.3 Add Gorilla Mux dependency (`github.com/gorilla/mux`)
+- [x] 1.4 Add PostgreSQL driver (`github.com/jackc/pgx/v5`)
+- [x] 1.5 Add NATS client (`github.com/nats-io/nats.go`)
+- [x] 1.6 Set up configuration loading with environment variables
+- [x] 1.7 Create Dockerfile for the API service
+- [x] 1.8 Create docker-compose.yml for local development (PostgreSQL, NATS, Typesense)
 
 ## 2. Database Layer
 
@@ -26,15 +26,15 @@
 
 ## 3. Core HTTP Server
 
-- [ ] 3.1 Create `cmd/server/main.go` entry point
-- [ ] 3.2 Implement graceful shutdown handling
-- [ ] 3.3 Set up Gorilla Mux router with `/api/v1` prefix
-- [ ] 3.4 Implement CORS middleware
-- [ ] 3.5 Implement request logging middleware
-- [ ] 3.6 Implement auth middleware (extract user from Kong headers)
+- [x] 3.1 Create `cmd/server/main.go` entry point
+- [x] 3.2 Implement graceful shutdown handling
+- [x] 3.3 Set up Gorilla Mux router with `/api/v1` prefix
+- [x] 3.4 Implement CORS middleware
+- [x] 3.5 Implement request logging middleware
+- [x] 3.6 Implement auth middleware (extract user from Kong headers)
 - [ ] 3.7 Implement rate limiting middleware
-- [ ] 3.8 Implement health check endpoint (`/health`)
-- [ ] 3.9 Implement readiness check endpoint (`/ready`)
+- [x] 3.8 Implement health check endpoint (`/health`)
+- [x] 3.9 Implement readiness check endpoint (`/ready`)
 
 ## 4. Chase Endpoints (from API, updateChase, chaseStats, createBundle)
 
@@ -128,8 +128,8 @@
 ## 15. Observability
 
 - [ ] 15.1 Add OpenTelemetry tracing
-- [ ] 15.2 Add Prometheus metrics endpoint (`/metrics`)
-- [ ] 15.3 Implement structured logging with `log/slog`
+- [x] 15.2 Add Prometheus metrics endpoint (`/metrics`)
+- [x] 15.3 Implement structured logging with `log/slog`
 - [ ] 15.4 Add request ID propagation
 
 ## 16. Testing

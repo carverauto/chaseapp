@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: chaseapp-postgres
+    environment:
+      POSTGRES_USER: chaseapp
+      POSTGRES_PASSWORD: chaseapp_dev
+      POSTGRES_DB: chaseapp
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chaseapp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NATS with JetStream
+  nats:
+    image: nats:2.10-alpine
+    container_name: chaseapp-nats
+    command: ["--jetstream", "--store_dir=/data", "-m", "8222"]
+    ports:
+      - "4222:4222"   # Client connections
+      - "8222:8222"   # HTTP management
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Typesense search
+  typesense:
+    image: typesense/typesense:27.1
+    container_name: chaseapp-typesense
+    environment:
+      TYPESENSE_API_KEY: chaseapp_dev_key
+      TYPESENSE_DATA_DIR: /data
+    ports:
+      - "8108:8108"
+    volumes:
+      - typesense_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8108/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO (S3-compatible storage)
+  minio:
+    image: minio/minio:latest
+    container_name: chaseapp-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: chaseapp
+      MINIO_ROOT_PASSWORD: chaseapp_dev
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ntfy (push notifications)
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: chaseapp-ntfy
+    command: serve
+    ports:
+      - "8090:80"
+    volumes:
+      - ntfy_data:/var/lib/ntfy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ChaseApp API server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chaseapp-api
+    environment:
+      SERVER_HOST: "0.0.0.0"
+      SERVER_PORT: "8080"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: chaseapp
+      DB_PASSWORD: chaseapp_dev
+      DB_NAME: chaseapp
+      DB_SSLMODE: disable
+      NATS_URL: nats://nats:4222
+      TYPESENSE_HOST: typesense
+      TYPESENSE_PORT: "8108"
+      TYPESENSE_API_KEY: chaseapp_dev_key
+      NTFY_URL: http://ntfy:80
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      typesense:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  nats_data:
+  typesense_data:
+  minio_data:
+  ntfy_data:
