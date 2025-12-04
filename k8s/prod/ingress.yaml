@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   name: web
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: letsencrypt-dns
     external-dns.alpha.kubernetes.io/hostname: chaseapp.tv
 spec:
   tls:

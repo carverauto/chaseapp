@@ -4,7 +4,6 @@ namespace: chaseapp
 resources:
   - ../base
   - namespace.yaml
-  - clusterissuer.yaml
 patchesStrategicMerge:
   - ingress.yaml
 images:

@@ -4,7 +4,7 @@ metadata:
   name: web
   annotations:
     kubernetes.io/ingress.class: nginx
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: letsencrypt-dns
     external-dns.alpha.kubernetes.io/ttl: "60"
 spec:
   ingressClassName: nginx
