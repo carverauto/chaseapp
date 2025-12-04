@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: chaseapp
+commonLabels:
+  app.kubernetes.io/name: chaseapp
+  app.kubernetes.io/part-of: chaseapp
+resources:
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+images:
+  - name: ghcr.io/carverauto/chaseapp-web
+    newTag: latest
