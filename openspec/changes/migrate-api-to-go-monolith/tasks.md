@@ -110,7 +110,7 @@
 
 ## 13. Background Workers
 
-- [ ] 13.1 Implement worker manager for goroutine lifecycle
+- [x] 13.1 Implement worker manager for goroutine lifecycle
 - [x] 13.1 Implement worker manager for goroutine lifecycle
 - [x] 13.2 Implement Typesense indexer worker
 - [x] 13.3 Implement statistics aggregation worker
@@ -135,12 +135,12 @@
 
 ## 16. Testing
 
-- [ ] 16.1 Set up testcontainers for integration tests
+- [x] 16.1 Set up testcontainers for integration tests
 - [x] 16.1 Set up testcontainers for integration tests
 - [x] 16.2 Write unit tests for repository layer
-- [ ] 16.3 Write unit tests for service layer
-- [ ] 16.4 Write integration tests for HTTP handlers
-- [ ] 16.5 Write integration tests for NATS event handlers
+- [x] 16.3 Write unit tests for service layer
+- [x] 16.4 Write integration tests for HTTP handlers
+- [x] 16.5 Write integration tests for NATS event handlers
 - [x] 16.6 Set up CI pipeline with tests
 
 ## 17. Kubernetes Deployment

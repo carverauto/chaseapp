@@ -3,6 +3,7 @@ package geojson
 import (
 	"errors"
 	"math"
+	"sort"
 )
 
 // Rectangle represents a minimum bounding rectangle.
@@ -144,4 +145,13 @@ func convexHull(points []Point) []Point {
 
 func cross(o, a, b Point) float64 {
 	return (a.X-o.X)*(b.Y-o.Y) - (a.Y-o.Y)*(b.X-o.X)
+}
+
+func sortPoints(pts []Point) {
+	sort.Slice(pts, func(i, j int) bool {
+		if pts[i].X == pts[j].X {
+			return pts[i].Y < pts[j].Y
+		}
+		return pts[i].X < pts[j].X
+	})
 }
