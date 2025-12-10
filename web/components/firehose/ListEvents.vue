@@ -58,7 +58,7 @@ export default Vue.extend({
   methods: {
     async getStreamFeeds(userId: string) {
       try {
-        await this.$axios.post('https://us-central1-chaseapp-8459b.cloudfunctions.net/GetStreamToken',
+        await this.$axios.post('/api/v1/auth/chat-token',
             {
               user_id: userId,
             },

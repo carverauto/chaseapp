@@ -201,7 +201,7 @@ export default {
         this.message = ''
         if (uid)
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          await this.$axios.post('https://us-central1-chaseapp-8459b.cloudfunctions.net/GetStreamToken',
+          await this.$axios.post('/api/v1/auth/chat-token',
               {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 user_id: uid,

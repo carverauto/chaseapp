@@ -149,29 +149,29 @@
 - [x] 17.2 Create K8s Service manifest
 - [x] 17.3 Create K8s ConfigMap for configuration
 - [x] 17.4 Create K8s Secret for sensitive config
-- [ ] 17.5 Update Kong Ingress routes
+- [x] 17.5 Update Kong Ingress routes
 - [x] 17.6 Create HorizontalPodAutoscaler
 - [x] 17.7 Add to Kustomize overlays (staging, prod)
 
 ## 18. Data Migration
 
-- [ ] 18.1 Create Firestore to PostgreSQL migration script
-- [ ] 18.2 Migrate chase data
-- [ ] 18.3 Migrate user data
-- [ ] 18.4 Migrate push token data
-- [ ] 18.5 Validate data integrity post-migration
+- [x] 18.1 Create Firestore to PostgreSQL migration script
+- [x] 18.2 Migrate chase data
+- [x] 18.3 Migrate user data
+- [x] 18.4 Migrate push token data
+- [x] 18.5 Validate data integrity post-migration
 
 ## 19. Client Updates
 
-- [ ] 19.1 Update web client API base URL
-- [ ] 19.2 Update web client API calls to new endpoints
-- [ ] 19.3 Update mobile client API base URL
-- [ ] 19.4 Update mobile client API calls to new endpoints
+- [x] 19.1 Update web client API base URL
+- [x] 19.2 Update web client API calls to new endpoints
+- [x] 19.3 Update mobile client API base URL
+- [x] 19.4 Update mobile client API calls to new endpoints
 - [ ] 19.5 Remove Firebase SDK from clients (where applicable)
 
 ## 20. Cutover & Cleanup
 
-- [ ] 20.1 Deploy to staging and validate
+- [x] 20.1 Deploy to staging and validate
 - [ ] 20.2 Run shadow mode (both APIs active)
 - [ ] 20.3 Switch production traffic to new API
 - [ ] 20.4 Monitor for errors and performance

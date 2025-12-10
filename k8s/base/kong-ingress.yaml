@@ -1,0 +1,76 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kong-api-ingress
+  annotations:
+    kubernetes.io/ingress.class: kong
+    konghq.com/plugins: jwt
+    konghq.com/override: kong-api-service
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+    external-dns.alpha.kubernetes.io/ttl: "60"
+spec:
+  ingressClassName: kong
+  tls:
+    - hosts:
+        - api.chaseapp.tv
+      secretName: kong-api-tls
+  rules:
+    - host: api.chaseapp.tv
+      http:
+        paths:
+          - path: /api/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 80
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: api
+                port:
+                  number: 80
+          - path: /ready
+            pathType: Exact
+            backend:
+              service:
+                name: api
+                port:
+                  number: 80
+          - path: /metrics
+            pathType: Exact
+            backend:
+              service:
+                name: api
+                port:
+                  number: 80
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongIngress
+metadata:
+  name: kong-api-service
+proxy:
+  protocol: http
+  host: api.chaseapp.tv
+  port: 80
+  path: /
+  retries: 3
+  connect_timeout: 60000
+  read_timeout: 60000
+  write_timeout: 60000
+route:
+  protocols:
+    - http
+    - https
+  strip_path: false
+  preserve_host: true
+  methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  https_redirect_status_code: 426
+  regex_priority: 0

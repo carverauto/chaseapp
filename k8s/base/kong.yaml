@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kong
+  labels:
+    name: kong
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongClusterPlugin
+metadata:
+  name: jwt
+  annotations:
+    kubernetes.io/ingress.class: kong
+config: {}
+plugin: jwt
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: chaseapp-web
+  annotations:
+    kubernetes.io/ingress.class: kong
+username: chaseapp-web
+credentials:
+  - chaseapp-jwt-secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: chaseapp-jwt-secret
+  annotations:
+    kubernetes.io/ingress.class: kong
+type: Opaque
+stringData:
+  kongCredType: jwt
+  key: "your-jwt-secret-key-here"
+  algorithm: "HS256"

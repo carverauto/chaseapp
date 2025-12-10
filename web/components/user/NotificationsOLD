@@ -123,7 +123,7 @@ export default Vue.extend({
       getToken(messaging).then(async (currentToken: string) => {
         if (currentToken)
           try {
-            await this.$axios.post('/UnsubscribeTopic',
+            await this.$axios.post('/api/v1/push/unsubscribe',
               {
                 Token: [currentToken],
                 Topic: 'networks',

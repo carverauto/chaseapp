@@ -283,7 +283,7 @@ export default defineNuxtConfig ({
   */
   axios: {
     proxy: true,
-    prefix: 'https://us-central1-chaseapp-8459b.cloudfunctions.net',
+    prefix: process.env.API_URL || 'https://api.chaseapp.tv',
     headers: {
       // accept: 'application/json',
       'Access-Control-Allow-Origin': '*',
