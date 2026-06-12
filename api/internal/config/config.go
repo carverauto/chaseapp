@@ -17,6 +17,7 @@ type Config struct {
 	Push          PushConfig
 	Chat          ChatConfig
 	External      ExternalConfig
+	Meta          MetaConfig
 	Observability ObservabilityConfig
 }
 
@@ -105,6 +106,15 @@ type ExternalConfig struct {
 	DiscordWebhook       string
 }
 
+// MetaConfig holds Meta Marketing API configuration.
+type MetaConfig struct {
+	GraphBaseURL          string
+	GraphVersion          string
+	AgencyBusinessID      string
+	SystemUserID          string
+	SystemUserAccessToken string
+}
+
 // ObservabilityConfig holds tracing/metrics settings.
 type ObservabilityConfig struct {
 	ServiceName  string
@@ -173,6 +183,13 @@ func Load() (*Config, error) {
 			NOAABaseURL:          getEnv("NOAA_BASE_URL", "https://api.weather.gov"),
 			LaunchLibraryBaseURL: getEnv("LAUNCH_LIBRARY_BASE_URL", "https://ll.thespacedevs.com/2.2.0"),
 			DiscordWebhook:       getEnv("DISCORD_WEBHOOK_URL", ""),
+		},
+		Meta: MetaConfig{
+			GraphBaseURL:          getEnv("META_GRAPH_BASE_URL", "https://graph.facebook.com"),
+			GraphVersion:          getEnv("META_GRAPH_VERSION", "v21.0"),
+			AgencyBusinessID:      getEnv("META_AGENCY_BUSINESS_ID", ""),
+			SystemUserID:          getEnv("META_SYSTEM_USER_ID", ""),
+			SystemUserAccessToken: getEnv("META_SYSTEM_USER_TOKEN", getEnv("META_SYSTEM_USER_ACCESS_TOKEN", "")),
 		},
 		Observability: ObservabilityConfig{
 			ServiceName:  getEnv("OTEL_SERVICE_NAME", "chaseapp-api"),

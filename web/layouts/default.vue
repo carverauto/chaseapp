@@ -152,6 +152,20 @@
                       Settings
                     </nuxt-link>
                     <nuxt-link
+                      to="/campaign-builder"
+                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      role="menuitem"
+                    >
+                      Campaign Builder
+                    </nuxt-link>
+                    <nuxt-link
+                      to="/creative-uploader"
+                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      role="menuitem"
+                    >
+                      Creative Uploader
+                    </nuxt-link>
+                    <nuxt-link
                       to="/profile"
                       class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       role="menuitem"
@@ -335,6 +349,18 @@
                     class="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:text-white hover:bg-gray-700"
                   >
                     Settings
+                  </nuxt-link>
+                  <nuxt-link
+                    to="/campaign-builder"
+                    class="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:text-white hover:bg-gray-700"
+                  >
+                    Campaign Builder
+                  </nuxt-link>
+                  <nuxt-link
+                    to="/creative-uploader"
+                    class="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:text-white hover:bg-gray-700"
+                  >
+                    Creative Uploader
                   </nuxt-link>
                   <nuxt-link
                     to="/profile"

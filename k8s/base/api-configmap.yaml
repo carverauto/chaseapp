@@ -23,3 +23,6 @@ data:
   NTFY_URL: "https://ntfy.local"
   CHAT_TOKEN_ISSUER: "chaseapp"
   CHAT_TOKEN_AUDIENCE: "chat"
+  META_GRAPH_BASE_URL: "https://graph.facebook.com"
+  META_GRAPH_VERSION: "v21.0"
+  META_SYSTEM_USER_ID: "61580721635230"

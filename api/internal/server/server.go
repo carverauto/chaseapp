@@ -43,6 +43,7 @@ type Server struct {
 	authHandler     *handler.AuthHandler
 	webhookHandler  *handler.WebhookHandler
 	searchHandler   *handler.SearchHandler
+	metaHandler     *handler.MetaHandler
 
 	// Realtime
 	publisher  *realtime.Publisher
@@ -129,6 +130,7 @@ func New(cfg *config.Config, logger *slog.Logger, pool *pgxpool.Pool) (*Server, 
 		authHandler:     handler.NewAuthHandler(chatSigner, logger),
 		webhookHandler:  webhookHandler,
 		searchHandler:   handler.NewSearchHandler(typesenseClient, logger),
+		metaHandler:     handler.NewMetaHandler(cfg.Meta, logger),
 		subscriber:      subscriber,
 
 		// Workers
@@ -221,6 +223,9 @@ func (s *Server) setupRoutes() {
 
 	// Search
 	api.HandleFunc("/search", s.searchHandler.Search).Methods(http.MethodGet)
+
+	// Meta
+	api.HandleFunc("/meta/ad-accounts", s.metaHandler.ListAdAccounts).Methods(http.MethodGet)
 }
 
 // readinessCheck verifies database connectivity.
